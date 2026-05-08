@@ -1,0 +1,14 @@
+numpy
+scipy
+pandas
+seaborn
+scikit-learn
+networkx
+tqdm
+ujson
+torch
+torchaudio
+torchvision
+
+
+
