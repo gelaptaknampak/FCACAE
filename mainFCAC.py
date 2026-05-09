@@ -94,6 +94,7 @@ for i_trial in tqdm(range(n_trial), total=n_trial, desc='Trial for Averaging'): 
 print(data_name)
 print('--------------- FCAC (mean result)')
 print('Time:', '{:.5f}'.format(np.mean(all_training_time)), '[s]')
+print(f"Payload Komunikasi: {total_payload} bytes")
 print(' # of Nodes:', '{:.1f}'.format(np.mean(all_n_nodes)))
 print(' # of Clusters:', '{:.1f}'.format(np.mean(all_n_clusters)))
 print(' ARI:', '{:.5f}'.format(np.mean(all_ari)))
