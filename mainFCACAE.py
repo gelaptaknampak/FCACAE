@@ -27,7 +27,7 @@ data_name = "fmnist"
 
 
 # experimental settings
-n_trial = 2
+n_trial = 20
 niid = True  # True:non-iid, False:iid for federated learning
 epsilon = 50  # privacy budget for \epsilon-differential privacy (-1: no noise)
 max_iters = 1
@@ -113,7 +113,7 @@ for i_trial in tqdm(range(n_trial), total=n_trial, desc='Trial for Averaging'): 
     ae_model.train()
     print("Training Autoencoder...")
 
-    for epoch in range(20):
+    for epoch in range(60):
 
         total_loss = 0
 
