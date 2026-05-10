@@ -67,12 +67,6 @@ for i_trial in tqdm(range(n_trial), total=n_trial, desc='Trial for Averaging'): 
     # prepare for federated learning
     train_data, train_target, statistic = separate_data((train_DATA, train_TARGET), n_clients, n_classes, alpha, niid, balance, partition)
 
-    # Add Laplacian noise to a train_dataset
-    if epsilon == -1:  # no noise setting
-        noised_train_data = train_data
-    else:
-        noised_train_data = [add_laplace_noise(data, epsilon, seed=i_trial) for data in train_data]
-    
     # ==========================================
     # INTEGRASI AUTOENCODER (VERSI GITHUB ORIGINAL)
     # ==========================================
@@ -98,7 +92,7 @@ for i_trial in tqdm(range(n_trial), total=n_trial, desc='Trial for Averaging'): 
     # 3. Pre-training AE secara terpusat (PAKAI DATALOADER)
     from torch.utils.data import TensorDataset, DataLoader
 
-    all_data_for_ae = np.vstack(noised_train_data)
+    all_data_for_ae = np.vstack(train_data)
 
     tensor_all_data = torch.FloatTensor(all_data_for_ae)
 
@@ -141,7 +135,7 @@ for i_trial in tqdm(range(n_trial), total=n_trial, desc='Trial for Averaging'): 
     ae_model.eval()
     embedded_train_data = []
     with torch.no_grad():
-        for client_data in noised_train_data:
+        for client_data in train_data:
             tensor_data = torch.FloatTensor(client_data).to(device)
             # Menggunakan fungsi encode() langsung dari AE.py
             z = ae_model.encode(tensor_data.view(-1, 784))
@@ -153,10 +147,16 @@ for i_trial in tqdm(range(n_trial), total=n_trial, desc='Trial for Averaging'): 
         embedded_test_data = ae_model.encode(tensor_test_data.view(-1, 784)).cpu().numpy()
     # ==========================================
 
+    # Add Laplacian noise to a train_dataset
+    if epsilon == -1:  # no noise setting
+        noised_train_data = train_data
+    else:
+        noised_train_data = [add_laplace_noise(z, epsilon, seed=i_trial) for z in embedded_train_data]
+
     # training
     fcac = FCAC(n_clients_=n_clients, iter_server_=max_iters)
     start = time.time()
-    params_server_fcac, params_clients_fcac = fcac.fit(embedded_train_data)
+    params_server_fcac, params_clients_fcac = fcac.fit(noised_train_data)
     all_training_time.append(time.time() - start)
 
     # test
@@ -169,7 +169,7 @@ for i_trial in tqdm(range(n_trial), total=n_trial, desc='Trial for Averaging'): 
     all_n_nodes.append(params_server_fcac.G_.number_of_nodes())
     all_n_clusters.append(params_server_fcac.n_clusters_)
     # Menghitung total ukuran memori (dalam bytes) dari seluruh data klien
-    total_payload = sum(client_data.nbytes for client_data in embedded_train_data)
+    total_payload = sum(client_data.nbytes for client_data in noised_train_data)
 
 
 # averaged results
