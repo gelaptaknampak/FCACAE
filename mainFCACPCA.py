@@ -86,29 +86,53 @@ for i_trial in tqdm(range(n_trial), total=n_trial, desc='Trial for Averaging'):
         partition
     )
 
+    # # ==========================================
+    # # PCA DIMENSIONALITY REDUCTION
+    # # ==========================================
+
+    # # gabungkan semua client data untuk fit PCA global
+    # all_data_for_pca = np.vstack(train_data)
+
+    # # PCA
+    # pca = PCA(
+    #     n_components=pca_components,
+    #     random_state=i_trial
+    # )
+
+    # pca.fit(all_data_for_pca)
+
+    # # transform tiap client
+    # embedded_train_data = [
+    #     pca.transform(client_data)
+    #     for client_data in train_data
+    # ]
+
+    # # transform test data
+    # embedded_test_data = pca.transform(test_data)
+
     # ==========================================
-    # PCA DIMENSIONALITY REDUCTION
+    # LOCAL PCA (PER CLIENT)
     # ==========================================
 
-    # gabungkan semua client data untuk fit PCA global
-    all_data_for_pca = np.vstack(train_data)
+    embedded_train_data = []
+    client_pca_models = [] # Simpan model PCA tiap client jika diperlukan
 
-    # PCA
-    pca = PCA(
-        n_components=pca_components,
-        random_state=i_trial
-    )
+    for client_data in train_data:
+        # Inisialisasi PCA untuk tiap client
+        local_pca = PCA(n_components=pca_components, random_state=42)
+        
+        # Fit dan Transform hanya pada data milik client tersebut
+        transformed_data = local_pca.fit_transform(client_data)
+        embedded_train_data.append(transformed_data)
+        
+        # Simpan model jika ingin digunakan untuk mapping test data
+        client_pca_models.append(local_pca)
 
-    pca.fit(all_data_for_pca)
-
-    # transform tiap client
-    embedded_train_data = [
-        pca.transform(client_data)
-        for client_data in train_data
-    ]
-
-    # transform test data
-    embedded_test_data = pca.transform(test_data)
+    # Masalah: Untuk test data, PCA mana yang dipakai? 
+    # Sebagai pendekatan sederhana, kita gunakan PCA dari client pertama atau 
+    # rata-rata (tapi rata-rata model PCA itu kompleks).
+    # Untuk eksperimen ini, mari gunakan PCA dari client 0 sebagai referensi test:
+    embedded_test_data = client_pca_models[0].transform(test_data)
 
     # ==========================================
     # NORMALIZATION
