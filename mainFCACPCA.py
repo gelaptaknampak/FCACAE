@@ -61,6 +61,8 @@ for i_trial in tqdm(range(n_trial), total=n_trial, desc='Trial for Averaging'):
     # load dataset
     DATA, TARGET, n_clients, n_classes = set_dataset(data_name, niid, i_trial)
 
+    DATA = DATA.astype(np.float32) / 255.0
+
     # training data = test data
     train_DATA = DATA
     train_TARGET = TARGET
@@ -114,12 +116,20 @@ for i_trial in tqdm(range(n_trial), total=n_trial, desc='Trial for Averaging'):
 
     scaler = MinMaxScaler()
 
+    # gabungkan seluruh embedded train
+    all_embedded_train = np.vstack(embedded_train_data)
+
+    # fit scaler sekali saja
+    scaler.fit(all_embedded_train)
+
+    # transform semua client
     embedded_train_data = [
-        scaler.fit_transform(client_data)
+        scaler.transform(client_data)
         for client_data in embedded_train_data
     ]
 
-    embedded_test_data = scaler.fit_transform(embedded_test_data)
+    # transform test data TANPA fit ulang
+    embedded_test_data = scaler.transform(embedded_test_data)
 
     # ==========================================
     # DIFFERENTIAL PRIVACY
