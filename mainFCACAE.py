@@ -147,11 +147,38 @@ for i_trial in tqdm(range(n_trial), total=n_trial, desc='Trial for Averaging'): 
         embedded_test_data = ae_model.encode(tensor_test_data.view(-1, 784)).cpu().numpy()
     # ==========================================
 
+    # ==========================================
+    # FEDERATED MIN-MAX NORMALIZATION (PATUH HUKUM FL)
+    # ==========================================
+    # Langkah 1: Klien mencari nilai min dan max lokal (per fitur/kolom)
+    local_mins = [np.min(client_data, axis=0) for client_data in embedded_train_data]
+    local_maxs = [np.max(client_data, axis=0) for client_data in embedded_train_data]
+
+    # Langkah 2: Server mengumpulkan nilai lokal dan mencari MIN & MAX Global
+    global_min = np.minimum.reduce(local_mins)
+    global_max = np.maximum.reduce(local_maxs)
+
+    # Tambahkan nilai sangat kecil agar tidak terjadi pembagian dengan nol (zero division)
+    denominator = (global_max - global_min) + 1e-8
+
+    # Langkah 3: Klien melakukan scaling secara mandiri di lokal masing-masing
+    scaled_train_data = [
+        (client_data - global_min) / denominator
+        for client_data in embedded_train_data
+    ]
+
+    # Langkah 4: Server menskalakan data uji dengan parameter global yang sama
+    scaled_test_data = (embedded_test_data - global_min) / denominator
+    # ==========================================
+
     # Add Laplacian noise to a train_dataset
     if epsilon == -1:  # no noise setting
-        noised_train_data = train_data
+        noised_train_data = scaled_train_data
     else:
-        noised_train_data = [add_laplace_noise(z, epsilon, seed=i_trial) for z in embedded_train_data]
+        noised_train_data = [add_laplace_noise(z, epsilon, seed=i_trial) for z in scaled_train_data]
+
+        # WAJIB: Potong nilai bocor akibat noise agar tetap di rentang [0, 1]
+        noised_train_data = [np.clip(client_data, 0, 1) for client_data in noised_train_data]
 
     # training
     fcac = FCAC(n_clients_=n_clients, iter_server_=max_iters)
@@ -160,7 +187,7 @@ for i_trial in tqdm(range(n_trial), total=n_trial, desc='Trial for Averaging'): 
     all_training_time.append(time.time() - start)
 
     # test
-    server_assignments = params_server_fcac.predict(embedded_test_data)
+    server_assignments = params_server_fcac.predict(scaled_test_data)
 
     # evaluation
     all_ari.append(adjusted_rand_score(test_dataset['true_label'], server_assignments))
