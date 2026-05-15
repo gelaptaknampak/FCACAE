@@ -27,7 +27,7 @@ data_name = "fmnist"
 
 
 # experimental settings
-n_trial = 20
+n_trial = 2
 niid = True  # True:non-iid, False:iid for federated learning
 epsilon = 50  # privacy budget for \epsilon-differential privacy (-1: no noise)
 max_iters = 1
@@ -86,7 +86,7 @@ for i_trial in tqdm(range(n_trial), total=n_trial, desc='Trial for Averaging'): 
     # 2. Inisialisasi Model
     # Karena fmnist dan MNIST sama-sama 784 fitur, Network asli akan bekerja
     ae_model = Network(args_ae).to(device)
-    optimizer = torch.optim.Adam(ae_model.parameters(), lr=1e-3)
+    optimizer = torch.optim.Adam(ae_model.parameters(), lr=5e-4)
     loss_fn = torch.nn.MSELoss() # Menggunakan MSE untuk rekonstruksi data kontinu
 
     # 3. Pre-training AE secara terpusat (PAKAI DATALOADER)
