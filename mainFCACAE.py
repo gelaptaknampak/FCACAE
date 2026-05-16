@@ -109,7 +109,7 @@ for i_trial in tqdm(range(n_trial), total=n_trial, desc='Trial for Averaging'): 
     ae_model.train()
     print("Training Autoencoder...")
 
-    for epoch in range(60):
+    for epoch in range(20):
 
         total_loss = 0
 
