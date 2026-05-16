@@ -6,15 +6,15 @@ from torchvision import datasets, transforms
 
 import sys
 sys.path.append('../')
-from pytorchAE.architectures import FC_Encoder, FC_Decoder, CNN_Encoder, CNN_Decoder
-from pytorchAE.datasets import MNIST, EMNIST, FashionMNIST
+from architectures import FC_Encoder, FC_Decoder, CNN_Encoder, CNN_Decoder
+from datasets import MNIST, EMNIST, FashionMNIST
 
 class Network(nn.Module):
     def __init__(self, args):
         super(Network, self).__init__()
-        self.args = args
         output_size = args.embedding_size
         self.encoder = CNN_Encoder(output_size)
+
         self.decoder = CNN_Decoder(args.embedding_size)
 
     def encode(self, x):
