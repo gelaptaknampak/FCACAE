@@ -78,7 +78,7 @@ for i_trial in tqdm(range(n_trial), total=n_trial, desc='Trial for Averaging'): 
     # 1. Setup Objek Args (Wajib karena Network(args) membutuhkannya)
     class DummyArgs:
         def __init__(self):
-            self.embedding_size = 32  # Ukuran laten (bisa coba 16, 32, atau 64)
+            self.embedding_size = 64  # Ukuran laten (bisa coba 16, 32, atau 64)
             self.input_dim = 784
             self.cuda = torch.cuda.is_available()
 
