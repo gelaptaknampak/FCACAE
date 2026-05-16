@@ -1040,67 +1040,67 @@ class FCAC(BaseEstimator):
         # get label for each data in x with the nearest node
         # compute cim between x and nodes
 
-        # ======================================================
-        # BAGIAN YANG DIUBAH (OPTIMASI MEMORY)
-        # ======================================================
+        # # ======================================================
+        # # BAGIAN YANG DIUBAH (OPTIMASI MEMORY)
+        # # ======================================================
 
-        # ambil sigma tiap node
-        sigmas = list(
-            self.__get_node_attributes_from(
-                'sigma',
-                list(self.G_.nodes)
-            )
-        )
+        # # ambil sigma tiap node
+        # sigmas = list(
+        #     self.__get_node_attributes_from(
+        #         'sigma',
+        #         list(self.G_.nodes)
+        #     )
+        # )
 
-        # convert ke float32 agar memory lebih hemat
-        x = np.asarray(x, dtype=np.float32)
+        # # convert ke float32 agar memory lebih hemat
+        # x = np.asarray(x, dtype=np.float32)
 
-        weights = np.asarray(weights, dtype=np.float32)
+        # weights = np.asarray(weights, dtype=np.float32)
 
-        sigmas = np.asarray(sigmas, dtype=np.float32)
+        # sigmas = np.asarray(sigmas, dtype=np.float32)
 
-        # hitung rata-rata sigma
-        sigma_mean = np.mean(sigmas)
+        # # hitung rata-rata sigma
+        # sigma_mean = np.mean(sigmas)
 
-        # list untuk menyimpan hasil CIM
-        cim = []
+        # # list untuk menyimpan hasil CIM
+        # cim = []
 
-        # loop seluruh sample
-        for k in range(len(x)):
+        # # loop seluruh sample
+        # for k in range(len(x)):
 
-            # hitung selisih sample dengan seluruh node
-            diff = x[k, :] - weights
+        #     # hitung selisih sample dengan seluruh node
+        #     diff = x[k, :] - weights
 
-            # gaussian kernel similarity
-            c = np.exp(
-                -(diff ** 2) /
-                (2 * sigma_mean ** 2)
-            )
+        #     # gaussian kernel similarity
+        #     c = np.exp(
+        #         -(diff ** 2) /
+        #         (2 * sigma_mean ** 2)
+        #     )
 
-            # hitung CIM
-            cim_k = np.sqrt(
-                1 - np.mean(c, axis=1)
-            )
+        #     # hitung CIM
+        #     cim_k = np.sqrt(
+        #         1 - np.mean(c, axis=1)
+        #     )
 
-            cim.append(cim_k)
+        #     cim.append(cim_k)
 
-        # convert list menjadi numpy array
-        cim = np.asarray(cim)
+        # # convert list menjadi numpy array
+        # cim = np.asarray(cim)
 
-        # cari node dengan CIM terkecil
-        nearest_node_idx = np.argmin(cim, axis=1)
-
-        # kembalikan label cluster berdasarkan node terdekat
-        return cluster_list[nearest_node_idx]
-
-        # sigmas = list(self.__get_node_attributes_from('sigma', list(self.G_.nodes)))
-        # c = [np.exp(-(x[k, :] - np.array(weights)) ** 2 / (2 * np.mean(np.array(sigmas)) ** 2)) for k in range(len(x))]
-        # cim = [np.sqrt(1 - np.mean(c[k], axis=1)) for k in range(len(x))]
-
-        # # get indexes of the nearest neighbor
+        # # cari node dengan CIM terkecil
         # nearest_node_idx = np.argmin(cim, axis=1)
 
+        # # kembalikan label cluster berdasarkan node terdekat
         # return cluster_list[nearest_node_idx]
+
+        sigmas = list(self.__get_node_attributes_from('sigma', list(self.G_.nodes)))
+        c = [np.exp(-(x[k, :] - np.array(weights)) ** 2 / (2 * np.mean(np.array(sigmas)) ** 2)) for k in range(len(x))]
+        cim = [np.sqrt(1 - np.mean(c[k], axis=1)) for k in range(len(x))]
+
+        # get indexes of the nearest neighbor
+        nearest_node_idx = np.argmin(cim, axis=1)
+
+        return cluster_list[nearest_node_idx]
 
     def plotting_ca_plus(self, x: np.ndarray = None, fig_name=None):
         fig, ax = plt.subplots()
