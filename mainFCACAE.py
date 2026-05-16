@@ -57,6 +57,8 @@ for i_trial in tqdm(range(n_trial), total=n_trial, desc='Trial for Averaging'): 
     # load dataset
     DATA, TARGET, n_clients, n_classes = set_dataset(data_name, niid, i_trial)
 
+    DATA = DATA.astype(np.float32) / 255.0
+
     # training data = test data
     train_DATA = DATA
     train_TARGET = TARGET
