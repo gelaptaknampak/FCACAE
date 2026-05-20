@@ -98,6 +98,13 @@ def local_train_ae(global_model, client_data, device, epochs=1):
             optimizer.step()
 
             total_loss += loss.item()
+        
+        avg_loss = total+loss / len(loader)
+
+        if epoch == epochs - 1:
+            print(
+                f"   Final Loss: {avg_loss:.6f}"
+            )
 
     return local_model.state_dict()
 
