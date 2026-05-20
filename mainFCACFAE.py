@@ -70,7 +70,8 @@ def local_train_ae(global_model, client_data, device, epochs=1):
     loader = DataLoader(
         TensorDataset(tensor_data),
         batch_size=64,
-        shuffle=True
+        shuffle=True,
+        drop_last=True
     )
 
     local_model.train()
