@@ -54,6 +54,72 @@ all_ari = []
 all_ami = []
 all_nmi = []
 
+def local_train_ae(global_model, client_data, device, epochs=1):
+
+    import torch
+    from torch.utils.data import TensorDataset, DataLoader
+
+    local_model = copy.deepcopy(global_model)
+
+    optimizer = torch.optim.Adam(local_model.parameters(), lr=5e-4)
+
+    loss_fn = torch.nn.MSELoss()
+
+    tensor_data = torch.FloatTensor(client_data)
+
+    loader = DataLoader(
+        TensorDataset(tensor_data),
+        batch_size=64,
+        shuffle=True
+    )
+
+    local_model.train()
+
+    for epoch in range(epochs):
+
+        total_loss = 0
+
+        for (batch,) in loader:
+
+            batch = batch.to(device)
+
+            optimizer.zero_grad()
+
+            recon = local_model(batch)
+
+            loss = loss_fn(
+                recon,
+                batch.view(-1, 784)
+            )
+
+            loss.backward()
+
+            optimizer.step()
+
+            total_loss += loss.item()
+
+    return local_model.state_dict()
+
+def fedavg(local_weights, train_data):
+
+    avg_weights = OrderedDict()
+
+    total_data = sum(
+        len(client_data)
+        for client_data in train_data
+    )
+
+    for key in local_weights[0].keys():
+
+        avg_weights[key] = sum(
+            (
+                len(train_data[i]) / total_data
+            ) * local_weights[i][key]
+            for i in range(len(local_weights))
+        )
+
+    return avg_weights
+
 
 print(data_name)
 for i_trial in tqdm(range(n_trial), total=n_trial, desc='Trial for Averaging'):  # for averaging
