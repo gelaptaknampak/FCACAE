@@ -188,7 +188,7 @@ for i_trial in tqdm(range(n_trial), total=n_trial, desc='Trial for Averaging'): 
             local_weights.append(weights)
 
         # FedAvg aggregation
-        global_weights = fedavg(local_weights)
+        global_weights = fedavg(local_weights, train_data)
 
         global_ae.load_state_dict(global_weights)
 
