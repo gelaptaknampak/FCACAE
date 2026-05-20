@@ -99,7 +99,7 @@ def local_train_ae(global_model, client_data, device, epochs=1):
 
             total_loss += loss.item()
         
-        avg_loss = total+loss / len(loader)
+        avg_loss = total_loss / len(loader)
 
         if epoch == epochs - 1:
             print(
@@ -168,8 +168,8 @@ for i_trial in tqdm(range(n_trial), total=n_trial, desc='Trial for Averaging'): 
     global_ae = Network(args_ae).to(device)
 
     # Federated training settings
-    federated_rounds = 5
-    local_epochs = 1
+    federated_rounds = 20
+    local_epochs = 5
 
     print("Training Federated Autoencoder...")
 
