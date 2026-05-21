@@ -230,24 +230,24 @@ for i_trial in tqdm(range(n_trial), total=n_trial, desc='Trial for Averaging'): 
             tensor_test_data.view(-1, 784)
         ).cpu().numpy()
 
-    # # ==========================================
-    # # NORMALIZATION (PENTING UNTUK FCAC)
-    # # ==========================================
+    # ==========================================
+    # NORMALIZATION (PENTING UNTUK FCAC)
+    # ==========================================
 
-    # scaler = MinMaxScaler()
+    scaler = MinMaxScaler()
 
-    # all_z = np.vstack(embedded_train_data)
+    all_z = np.vstack(embedded_train_data)
 
-    # scaler.fit(all_z)
+    scaler.fit(all_z)
 
-    # embedded_train_data = [
-    #     scaler.transform(z)
-    #     for z in embedded_train_data
-    # ]
+    embedded_train_data = [
+        scaler.transform(z)
+        for z in embedded_train_data
+    ]
 
-    # embedded_test_data = scaler.transform(
-    #     embedded_test_data
-    # )
+    embedded_test_data = scaler.transform(
+        embedded_test_data
+    )
 
     # Add Laplacian noise to a train_dataset
     if epsilon == -1:  # no noise setting
