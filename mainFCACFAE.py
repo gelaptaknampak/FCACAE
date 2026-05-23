@@ -199,42 +199,78 @@ for i_trial in tqdm(range(n_trial), total=n_trial, desc='Trial for Averaging'): 
 
         global_ae.load_state_dict(global_weights)
 
+    # # ==========================================
+    # # FEATURE EXTRACTION
+    # # ==========================================
+
+    # global_ae.eval()
+
+    # embedded_train_data = []
+
+    # with torch.no_grad():
+
+    #     for client_data in train_data:
+
+    #         tensor_data = torch.FloatTensor(client_data).to(device)
+
+    #         z = global_ae.encode(
+    #             tensor_data.view(-1, 784)
+    #         )
+
+    #         embedded_train_data.append(
+    #             z.cpu().numpy()
+    #         )
+
+    # # Test embedding
+    # with torch.no_grad():
+
+    #     tensor_test_data = torch.FloatTensor(test_data).to(device)
+
+    #     embedded_test_data = global_ae.encode(
+    #         tensor_test_data.view(-1, 784)
+    #     ).cpu().numpy()
+
     # ==========================================
-    # FEATURE EXTRACTION
+    # FEATURE EXTRACTION & NORMALIZATION
     # ==========================================
 
     global_ae.eval()
-
     embedded_train_data = []
 
     with torch.no_grad():
-
         for client_data in train_data:
-
             tensor_data = torch.FloatTensor(client_data).to(device)
+            z = global_ae.encode(tensor_data.view(-1, 784))
+            embedded_train_data.append(z.cpu().numpy())
 
-            z = global_ae.encode(
-                tensor_data.view(-1, 784)
-            )
+    # --- TAMBAHAN BARU: NORMALISASI RUANG LATEN ---
+    from sklearn.preprocessing import MinMaxScaler
+    scaler = MinMaxScaler()
+    
+    # Gabungkan sementara untuk mencari nilai min-max global, lalu pisahkan lagi
+    concatenated_train = np.concatenate(embedded_train_data, axis=0)
+    scaler.fit(concatenated_train)
+    
+    # Terapkan normalisasi ke masing-masing klien
+    normalized_train_data = [scaler.transform(client_z) for client_z in embedded_train_data]
 
-            embedded_train_data.append(
-                z.cpu().numpy()
-            )
-
-    # Test embedding
+    # Test embedding (Jangan lupa di-scale juga!)
     with torch.no_grad():
-
         tensor_test_data = torch.FloatTensor(test_data).to(device)
-
-        embedded_test_data = global_ae.encode(
-            tensor_test_data.view(-1, 784)
-        ).cpu().numpy()
+        embedded_test_data = global_ae.encode(tensor_test_data.view(-1, 784)).cpu().numpy()
+        embedded_test_data = scaler.transform(embedded_test_data)
         
-    # Add Laplacian noise to a train_dataset
-    if epsilon == -1:  # no noise setting
-        noised_train_data = embedded_train_data
+    # Add Laplacian noise ke data yang SUDAH dinormalisasi
+    if epsilon == -1:  
+        noised_train_data = normalized_train_data
     else:
-        noised_train_data = [add_laplace_noise(z, epsilon, seed=i_trial) for z in embedded_train_data]
+        noised_train_data = [add_laplace_noise(z, epsilon, seed=i_trial) for z in normalized_train_data]
+        
+    # # Add Laplacian noise to a train_dataset
+    # if epsilon == -1:  # no noise setting
+    #     noised_train_data = embedded_train_data
+    # else:
+    #     noised_train_data = [add_laplace_noise(z, epsilon, seed=i_trial) for z in embedded_train_data]
 
     # training
     fcac = FCAC(n_clients_=n_clients, iter_server_=max_iters)
