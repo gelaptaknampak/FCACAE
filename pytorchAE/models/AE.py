@@ -18,8 +18,7 @@ class Network(nn.Module):
         self.decoder = CNN_Decoder(args.embedding_size)
 
     def encode(self, x):
-        z = self.encoder(x)
-        return torch.sigmoid(z)
+        return self.encoder(x)
 
     def decode(self, z):
         return self.decoder(z)

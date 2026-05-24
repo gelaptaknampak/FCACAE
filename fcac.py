@@ -1045,54 +1045,38 @@ class FCAC(BaseEstimator):
         # ======================================================
 
         # ambil sigma tiap node
-        sigmas = list(
-            self.__get_node_attributes_from(
-                'sigma',
-                list(self.G_.nodes)
-            )
-        )
+        sigmas = list(self.__get_node_attributes_from('sigma', list(self.G_.nodes)))
 
         # convert ke float32 agar memory lebih hemat
         x = np.asarray(x, dtype=np.float32)
 
         weights = np.asarray(weights, dtype=np.float32)
 
-        sigmas = np.asarray(sigmas, dtype=np.float32)
+        sigmas = np.asarray(sigmas, dtype=np.float32).reshape(-1, 1)
 
-        # hitung rata-rata sigma
-        sigma_mean = np.mean(sigmas)
+        nearest_node_idx = np.zeros(len(x), dtype=int)
 
-        # list untuk menyimpan hasil CIM
-        cim = []
-
-        # loop seluruh sample
+        # Loop seluruh sample (batching per sample untuk hindari OOM)
         for k in range(len(x)):
-
-            # hitung selisih sample dengan seluruh node
+            # Hitung selisih
             diff = x[k, :] - weights
 
-            # gaussian kernel similarity
-            c = np.exp(
-                -(diff ** 2) /
-                (2 * sigma_mean ** 2)
-            )
+            # CASTING SEMENTARA: Lakukan perhitungan rawan underflow dengan float64
+            # Tambahkan 1e-8 (epsilon) untuk mencegah division by zero jika sigma = 0
+            exponent = -(np.square(diff, dtype=np.float64)) / (2 * np.square(sigmas, dtype=np.float64) + 1e-8)
+            
+            # Gaussian kernel
+            c = np.exp(exponent)
 
-            # hitung CIM
-            cim_k = np.sqrt(
-                1 - np.mean(c, axis=1)
-            )
+            # Hitung CIM dengan np.clip untuk mencegah nilai negatif masuk ke np.sqrt
+            # (mencegah munculnya NaN akibat floating point error)
+            cim_k = np.sqrt(np.clip(1.0 - np.mean(c, axis=1), 0.0, 1.0))
 
-            cim.append(cim_k)
+            # Cari node dengan CIM terkecil
+            nearest_node_idx[k] = np.argmin(cim_k)
 
-        # convert list menjadi numpy array
-        cim = np.asarray(cim)
-
-        # cari node dengan CIM terkecil
-        nearest_node_idx = np.argmin(cim, axis=1)
-
-        # kembalikan label cluster berdasarkan node terdekat
         return cluster_list[nearest_node_idx]
-
+        
         # sigmas = list(self.__get_node_attributes_from('sigma', list(self.G_.nodes)))
         # c = [np.exp(-(x[k, :] - np.array(weights)) ** 2 / (2 * np.mean(np.array(sigmas)) ** 2)) for k in range(len(x))]
         # cim = [np.sqrt(1 - np.mean(c[k], axis=1)) for k in range(len(x))]
