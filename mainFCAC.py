@@ -25,9 +25,9 @@ data_name = "fmnist"
 
 
 # experimental settings
-n_trial = 2
+n_trial = 20
 niid = True  # True:non-iid, False:iid for federated learning
-epsilon = 50  # privacy budget for \epsilon-differential privacy (-1: no noise)
+epsilon = -1  # privacy budget for \epsilon-differential privacy (-1: no noise)
 max_iters = 1
 
 # data split setting
