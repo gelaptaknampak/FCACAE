@@ -156,7 +156,7 @@ for i_trial in tqdm(range(n_trial), total=n_trial, desc='Trial for Averaging'): 
 
     class DummyArgs:
         def __init__(self):
-            self.embedding_size = 128
+            self.embedding_size = 64
             self.input_dim = 784
             self.cuda = torch.cuda.is_available()
 
