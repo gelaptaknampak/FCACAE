@@ -31,7 +31,7 @@ data_name = "fmnist"
 
 
 # experimental settings
-n_trial = 2
+n_trial = 20
 niid = True  # True:non-iid, False:iid for federated learning
 epsilon = -1  # privacy budget for \epsilon-differential privacy (-1: no noise)
 max_iters = 1
@@ -168,7 +168,7 @@ for i_trial in tqdm(range(n_trial), total=n_trial, desc='Trial for Averaging'): 
     global_ae = Network(args_ae).to(device)
 
     # Federated training settings
-    federated_rounds = 20
+    federated_rounds = 10
     local_epochs = 10
 
     print("Training Federated Autoencoder...")
