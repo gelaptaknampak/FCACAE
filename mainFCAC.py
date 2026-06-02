@@ -47,6 +47,7 @@ all_n_clusters = []
 all_ari = []
 all_ami = []
 all_nmi = []
+all_v_thres = []
 
 
 print(data_name)
@@ -86,6 +87,7 @@ for i_trial in tqdm(range(n_trial), total=n_trial, desc='Trial for Averaging'): 
     all_nmi.append(normalized_mutual_info_score(test_dataset['true_label'], server_assignments))
     all_n_nodes.append(params_server_fcac.G_.number_of_nodes())
     all_n_clusters.append(params_server_fcac.n_clusters_)
+    all_v_thres.append(params_server_fcac.V_thres_)
     # Menghitung total ukuran memori (dalam bytes) dari seluruh data klien
     total_payload = sum(client_data.nbytes for client_data in noised_train_data)
 
@@ -97,6 +99,7 @@ print('Time:', '{:.5f}'.format(np.mean(all_training_time)), '[s]')
 print(f"Payload Komunikasi: {total_payload} bytes")
 print(' # of Nodes:', '{:.1f}'.format(np.mean(all_n_nodes)))
 print(' # of Clusters:', '{:.1f}'.format(np.mean(all_n_clusters)))
+print(' Similarity Threshold (V_thres):', '{:.5f}'.format(np.mean(all_v_thres)))
 print(' ARI:', '{:.5f}'.format(np.mean(all_ari)))
 print(' AMI:', '{:.5f}'.format(np.mean(all_ami)))
 print(' NMI:', '{:.5f}'.format(np.mean(all_nmi)))
