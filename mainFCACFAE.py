@@ -31,7 +31,7 @@ data_name = "fmnist"
 
 
 # experimental settings
-n_trial = 2
+n_trial = 10
 niid = True  # True:non-iid, False:iid for federated learning
 epsilon = -1  # privacy budget for \epsilon-differential privacy (-1: no noise)
 max_iters = 1
@@ -157,7 +157,7 @@ for i_trial in tqdm(range(n_trial), total=n_trial, desc='Trial for Averaging'): 
 
     class DummyArgs:
         def __init__(self):
-            self.embedding_size = 64
+            self.embedding_size = 256
             self.input_dim = 784
             self.cuda = torch.cuda.is_available()
 
