@@ -26,12 +26,12 @@ from sklearn.preprocessing import MinMaxScaler
 
 
 # data_list = ["hillvalley", "ozone", "bioresponse", "phoneme", "texture", "optdigits", "pendigits", "mozilla4", "magic", "letter", "skin"]
-data_name = "fmnist"
+data_name = "optdigits"
 
 
 
 # experimental settings
-n_trial = 2
+n_trial = 20
 niid = True  # True:non-iid, False:iid for federated learning
 epsilon = -1  # privacy budget for \epsilon-differential privacy (-1: no noise)
 max_iters = 1
