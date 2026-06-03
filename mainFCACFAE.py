@@ -55,19 +55,76 @@ all_ami = []
 all_nmi = []
 all_v_thres = []
 
+# def local_train_ae(global_model, client_data, device, epochs=1):
+
+#     import torch
+#     from torch.utils.data import TensorDataset, DataLoader
+
+#     local_model = copy.deepcopy(global_model)
+
+#     optimizer = torch.optim.Adam(local_model.parameters(), lr=5e-4)
+
+#     loss_fn = torch.nn.MSELoss()
+
+#     tensor_data = torch.FloatTensor(client_data)
+
+#     loader = DataLoader(
+#         TensorDataset(tensor_data),
+#         batch_size=64,
+#         shuffle=True,
+#         drop_last=False
+#     )
+
+#     if len(client_data) < 2:
+#         return local_model.state_dict()
+
+#     local_model.train()
+
+#     for epoch in range(epochs):
+
+#         total_loss = 0
+
+#         for (batch,) in loader:
+
+#             batch = batch.to(device)
+
+#             optimizer.zero_grad()
+
+#             recon = local_model(batch)
+
+#             loss = loss_fn(
+#                 recon,
+#                 batch
+#             )
+
+#             loss.backward()
+
+#             optimizer.step()
+
+#             total_loss += loss.item()
+        
+#         avg_loss = total_loss / len(loader)
+
+#         if epoch == epochs - 1:
+#             print(
+#                 f"   Final Loss: {avg_loss:.6f}"
+#             )
+
+#     return local_model.state_dict()
+
 def local_train_ae(global_model, client_data, device, epochs=1):
 
     import torch
     from torch.utils.data import TensorDataset, DataLoader
 
     local_model = copy.deepcopy(global_model)
-
     optimizer = torch.optim.Adam(local_model.parameters(), lr=5e-4)
-
     loss_fn = torch.nn.MSELoss()
 
-    tensor_data = torch.FloatTensor(client_data)
+    if len(client_data) < 2:
+        return local_model.state_dict(), 0.0
 
+    tensor_data = torch.FloatTensor(client_data)
     loader = DataLoader(
         TensorDataset(tensor_data),
         batch_size=64,
@@ -75,42 +132,24 @@ def local_train_ae(global_model, client_data, device, epochs=1):
         drop_last=False
     )
 
-    if len(client_data) < 2:
-        return local_model.state_dict()
-
     local_model.train()
+    avg_loss = 0.0
 
     for epoch in range(epochs):
-
         total_loss = 0
-
         for (batch,) in loader:
-
             batch = batch.to(device)
-
             optimizer.zero_grad()
-
             recon = local_model(batch)
-
-            loss = loss_fn(
-                recon,
-                batch
-            )
-
+            loss = loss_fn(recon, batch)
             loss.backward()
-
             optimizer.step()
-
             total_loss += loss.item()
         
         avg_loss = total_loss / len(loader)
 
-        if epoch == epochs - 1:
-            print(
-                f"   Final Loss: {avg_loss:.6f}"
-            )
-
-    return local_model.state_dict()
+    # Return model dan juga loss terakhirnya
+    return local_model.state_dict(), avg_loss
 
 def fedavg(local_weights, local_sizes):
 
@@ -173,24 +212,26 @@ for i_trial in tqdm(range(n_trial), total=n_trial, desc='Trial for Averaging'): 
 
     for rnd in range(federated_rounds):
 
-        print(f"\nFederated Round {rnd+1}")
+        print(f"\nFederated Round")
 
         local_weights = []
         local_sizes = []
+        round_total_loss = 0.0
+        total_data_in_round = 0
 
         for client_id in range(n_clients):
 
-            print(f" Client {client_id}")
+            # print(f" Client {client_id}")
 
             client_data = train_data[client_id]
 
-            print(" jumlah data:", len(client_data))
+            # print(" jumlah data:", len(client_data))
 
             if len(client_data) == 0:
-                print(f" Client {client_id} skipped (empty)")
+                # print(f" Client {client_id} skipped (empty)")
                 continue
 
-            weights = local_train_ae(
+            weights, client_loss = local_train_ae(
                 global_ae,
                 client_data,
                 device,
@@ -200,10 +241,17 @@ for i_trial in tqdm(range(n_trial), total=n_trial, desc='Trial for Averaging'): 
             local_weights.append(weights)
             local_sizes.append(len(client_data))
 
+            round_total_loss += client_loss * len(client_data)
+            total_data_in_round += len(client_data)
+
         # FedAvg aggregation
         global_weights = fedavg(local_weights, local_sizes)
 
         global_ae.load_state_dict(global_weights)
+
+        if total_data_in_round > 0:
+            avg_round_loss = round_total_loss / total_data_in_round
+            print(f"Federated Round {rnd+1} Total Loss ; {avg_round_loss:.6f}")
 
     # ==========================================
     # FEATURE EXTRACTION
