@@ -205,7 +205,7 @@ for i_trial in tqdm(range(n_trial), total=n_trial, desc='Trial for Averaging'): 
     global_ae = Network(args_ae).to(device)
 
     # Federated training settings
-    federated_rounds = 20
+    federated_rounds = 50
     local_epochs = 10
 
     print("Training Federated Autoencoder...")
