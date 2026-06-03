@@ -14,8 +14,15 @@ class Network(nn.Module):
         super(Network, self).__init__()
         self.args = args
         output_size = args.embedding_size
-        self.encoder = CNN_Encoder(output_size)
-        self.decoder = CNN_Decoder(args.embedding_size)
+        self.encoder = FC_Encoder(
+            args.input_dim,
+            output_size
+        )
+
+        self.decoder = FC_Decoder(
+            args.embedding_size,
+            args.input_dim
+        )
 
     def encode(self, x):
         return self.encoder(x)
@@ -24,7 +31,7 @@ class Network(nn.Module):
         return self.decoder(z)
 
     def forward(self, x):
-        z = self.encode(x.view(-1, 784))
+        z = self.encode(x)
         return self.decode(z)
 
 class AE(object):

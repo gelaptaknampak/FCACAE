@@ -157,8 +157,8 @@ for i_trial in tqdm(range(n_trial), total=n_trial, desc='Trial for Averaging'): 
 
     class DummyArgs:
         def __init__(self):
-            self.embedding_size = 256
-            self.input_dim = 784
+            self.embedding_size = 32
+            self.input_dim = 64
             self.cuda = torch.cuda.is_available()
 
     args_ae = DummyArgs()
@@ -215,7 +215,7 @@ for i_trial in tqdm(range(n_trial), total=n_trial, desc='Trial for Averaging'): 
             tensor_data = torch.FloatTensor(client_data).to(device)
 
             z = global_ae.encode(
-                tensor_data.view(-1, 784)
+                tensor_data
             )
 
             embedded_train_data.append(
@@ -228,7 +228,7 @@ for i_trial in tqdm(range(n_trial), total=n_trial, desc='Trial for Averaging'): 
         tensor_test_data = torch.FloatTensor(test_data).to(device)
 
         embedded_test_data = global_ae.encode(
-            tensor_test_data.view(-1, 784)
+            tensor_test_data
         ).cpu().numpy()
 
     # # ==========================================
