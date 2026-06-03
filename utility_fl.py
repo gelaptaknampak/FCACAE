@@ -11,7 +11,8 @@ from sklearn.preprocessing import LabelEncoder
 from sklearn.cluster import KMeans
 import pickle
 import math
-
+from sklearn.datasets import load_digits
+import os
 
 
 
@@ -120,9 +121,19 @@ def set_dataset(data_name, niid=True, SEED=0):
         DATA, TARGET, num_classes = load_openml_dataset(selected_dataset, num_clients, alpha, niid, balance, partition)
 
     elif selected_dataset == "optdigits":
-        # https://openml.org/search?type=data&status=active&id=28
         num_clients = 50
-        DATA, TARGET, num_classes = load_openml_dataset(selected_dataset, num_clients, alpha, niid, balance, partition)
+        num_classes = 10
+        dir_path = "../Dataset/FL/optdigits/"
+
+        DATA, TARGET = generate_optdigits(
+            dir_path,
+            num_clients,
+            num_classes,
+            alpha,
+            niid,
+            balance,
+            partition
+        )
 
     elif selected_dataset == "pendigits":
         # https://openml.org/search?type=data&status=any&id=32
@@ -428,6 +439,44 @@ def generate_fmnist(dir_path, num_clients, num_classes, alpha, niid, balance, pa
     label = dataset_label
 
     return data, label
+
+def generate_optdigits(dir_path,
+                       num_clients,
+                       num_classes,
+                       alpha,
+                       niid,
+                       balance,
+                       partition):
+
+    os.makedirs(dir_path + "rawdata", exist_ok=True)
+
+    cache_file = dir_path + "rawdata/optdigits.npz"
+
+    if os.path.exists(cache_file):
+
+        dataset = np.load(cache_file)
+
+        data = dataset["data"]
+        target = dataset["target"]
+
+    else:
+
+        data, target = fetch_openml(
+            name="optdigits",
+            return_X_y=True,
+            as_frame=False,
+            parser="auto"
+        )
+
+        target = target.astype(np.int64)
+
+        np.savez(
+            cache_file,
+            data=data,
+            target=target
+        )
+
+    return data, target
 
 
 def generate_har(dir_path, num_clients, num_classes, alpha, niid, balance, partition):
