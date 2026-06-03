@@ -72,8 +72,11 @@ def local_train_ae(global_model, client_data, device, epochs=1):
         TensorDataset(tensor_data),
         batch_size=64,
         shuffle=True,
-        drop_last=True
+        drop_last=False
     )
+
+    if len(client_data) < 2:
+        return local_model.state_dict()
 
     local_model.train()
 
@@ -91,7 +94,7 @@ def local_train_ae(global_model, client_data, device, epochs=1):
 
             loss = loss_fn(
                 recon,
-                batch.view(-1, 784)
+                batch
             )
 
             loss.backward()
@@ -109,22 +112,16 @@ def local_train_ae(global_model, client_data, device, epochs=1):
 
     return local_model.state_dict()
 
-def fedavg(local_weights, train_data):
+def fedavg(local_weights, local_sizes):
 
     avg_weights = OrderedDict()
 
-    total_data = sum(
-        len(client_data)
-        for client_data in train_data
-    )
+    total_data = sum(local_sizes)
 
-    for key in local_weights[0].keys():
+    for key in local_weights[0]:
 
         avg_weights[key] = sum(
-            (
-                len(train_data[i]) / total_data
-            ) * local_weights[i][key]
-            for i in range(len(local_weights))
+            (local_sizes[i] / total_data) * local_weights[i][key] for i in range(len(local_weights))
         )
 
     return avg_weights
@@ -179,12 +176,19 @@ for i_trial in tqdm(range(n_trial), total=n_trial, desc='Trial for Averaging'): 
         print(f"\nFederated Round {rnd+1}")
 
         local_weights = []
+        local_sizes = []
 
         for client_id in range(n_clients):
 
             print(f" Client {client_id}")
 
             client_data = train_data[client_id]
+
+            print(" jumlah data:", len(client_data))
+
+            if len(client_data) == 0:
+                print(f" Client {client_id} skipped (empty)")
+                continue
 
             weights = local_train_ae(
                 global_ae,
@@ -194,9 +198,10 @@ for i_trial in tqdm(range(n_trial), total=n_trial, desc='Trial for Averaging'): 
             )
 
             local_weights.append(weights)
+            local_sizes.append(len(client_data))
 
         # FedAvg aggregation
-        global_weights = fedavg(local_weights, train_data)
+        global_weights = fedavg(local_weights, local_sizes)
 
         global_ae.load_state_dict(global_weights)
 
