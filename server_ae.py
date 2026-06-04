@@ -4,7 +4,6 @@ from torch.utils.data import TensorDataset, DataLoader
 import copy
 from collections import OrderedDict
 import numpy as np
-from sklearn.preprocessing import MinMaxScaler
 
 # Mengimpor arsitektur Network bawaan dari paket pytorchAE milikmu
 from pytorchAE.models.AE import Network
@@ -70,7 +69,7 @@ def run_federated_ae_and_extract(train_data, test_data, device, n_clients, feder
     # Menginisialisasi model Network bawaan proyekmu
     global_ae = Network(args_ae).to(device)
     
-    print("Training Federated Autoencoder (Bawaan)...")
+    print("Training Federated Autoencoder...")
     for rnd in range(federated_rounds):
         local_weights = []
         local_sizes = []

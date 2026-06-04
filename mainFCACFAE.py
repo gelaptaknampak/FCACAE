@@ -87,6 +87,20 @@ for i_trial in tqdm(range(n_trial), total=n_trial, desc='Trial for Averaging'): 
         input_dim=64, 
         embedding_size=16
     )
+
+    # ==========================================
+    # MENYIMPAN REPRESENTASI LATEN UNTUK ANALISIS
+    # ==========================================
+    # Gabungkan seluruh data fitur laten dari list ke dalam satu matrix numpy
+    all_embedded_features = np.concatenate(embedded_train_data, axis=0)
+    
+    # Gabungkan seluruh target/label yang sesuai dengan urutan data klien
+    all_embedded_labels = np.concatenate(train_target, axis=0)
+
+    # Simpan ke dalam file .npz (Bisa di-load nanti untuk plotting)
+    # File ini akan ter-overwrite di setiap trial, jadi yang tersimpan adalah trial terakhir (Trial ke-20)
+    np.savez('latent_representations_optdigits.npz', features=all_embedded_features, labels=all_embedded_labels)
+    # ==========================================
     
     # Add Laplacian noise to a train_dataset
     if epsilon == -1:  # no noise setting
