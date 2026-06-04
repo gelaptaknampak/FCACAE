@@ -11,6 +11,7 @@ import sys
 import os
 
 from fcac import FCAC
+from server_ae import run_federated_ae_and_extract
 
 import warnings
 warnings.filterwarnings("ignore", category=UserWarning)
@@ -21,9 +22,6 @@ from sklearn.metrics.cluster import normalized_mutual_info_score
 from sklearn.metrics.cluster import adjusted_mutual_info_score
 
 import copy
-from collections import OrderedDict
-from sklearn.preprocessing import MinMaxScaler
-
 
 # data_list = ["hillvalley", "ozone", "bioresponse", "phoneme", "texture", "optdigits", "pendigits", "mozilla4", "magic", "letter", "skin"]
 data_name = "optdigits"
@@ -55,117 +53,6 @@ all_ami = []
 all_nmi = []
 all_v_thres = []
 
-# def local_train_ae(global_model, client_data, device, epochs=1):
-
-#     import torch
-#     from torch.utils.data import TensorDataset, DataLoader
-
-#     local_model = copy.deepcopy(global_model)
-
-#     optimizer = torch.optim.Adam(local_model.parameters(), lr=5e-4)
-
-#     loss_fn = torch.nn.MSELoss()
-
-#     tensor_data = torch.FloatTensor(client_data)
-
-#     loader = DataLoader(
-#         TensorDataset(tensor_data),
-#         batch_size=64,
-#         shuffle=True,
-#         drop_last=False
-#     )
-
-#     if len(client_data) < 2:
-#         return local_model.state_dict()
-
-#     local_model.train()
-
-#     for epoch in range(epochs):
-
-#         total_loss = 0
-
-#         for (batch,) in loader:
-
-#             batch = batch.to(device)
-
-#             optimizer.zero_grad()
-
-#             recon = local_model(batch)
-
-#             loss = loss_fn(
-#                 recon,
-#                 batch
-#             )
-
-#             loss.backward()
-
-#             optimizer.step()
-
-#             total_loss += loss.item()
-        
-#         avg_loss = total_loss / len(loader)
-
-#         if epoch == epochs - 1:
-#             print(
-#                 f"   Final Loss: {avg_loss:.6f}"
-#             )
-
-#     return local_model.state_dict()
-
-def local_train_ae(global_model, client_data, device, epochs=1):
-
-    import torch
-    from torch.utils.data import TensorDataset, DataLoader
-
-    local_model = copy.deepcopy(global_model)
-    optimizer = torch.optim.Adam(local_model.parameters(), lr=5e-4)
-    loss_fn = torch.nn.MSELoss()
-
-    if len(client_data) < 2:
-        return local_model.state_dict(), 0.0
-
-    tensor_data = torch.FloatTensor(client_data)
-    loader = DataLoader(
-        TensorDataset(tensor_data),
-        batch_size=64,
-        shuffle=True,
-        drop_last=False
-    )
-
-    local_model.train()
-    avg_loss = 0.0
-
-    for epoch in range(epochs):
-        total_loss = 0
-        for (batch,) in loader:
-            batch = batch.to(device)
-            optimizer.zero_grad()
-            recon = local_model(batch)
-            loss = loss_fn(recon, batch)
-            loss.backward()
-            optimizer.step()
-            total_loss += loss.item()
-        
-        avg_loss = total_loss / len(loader)
-
-    # Return model dan juga loss terakhirnya
-    return local_model.state_dict(), avg_loss
-
-def fedavg(local_weights, local_sizes):
-
-    avg_weights = OrderedDict()
-
-    total_data = sum(local_sizes)
-
-    for key in local_weights[0]:
-
-        avg_weights[key] = sum(
-            (local_sizes[i] / total_data) * local_weights[i][key] for i in range(len(local_weights))
-        )
-
-    return avg_weights
-
-
 print(data_name)
 for i_trial in tqdm(range(n_trial), total=n_trial, desc='Trial for Averaging'):  # for averaging
 
@@ -185,141 +72,22 @@ for i_trial in tqdm(range(n_trial), total=n_trial, desc='Trial for Averaging'): 
     train_data, train_target, statistic = separate_data((train_DATA, train_TARGET), n_clients, n_classes, alpha, niid, balance, partition)
 
     # ==========================================
-    # FEDERATED AUTOENCODER + FEDAVG
+    # FEDERATED AUTOENCODER
     # ==========================================
-
-    import torch
-    from pytorchAE.models.AE import Network
-
-    class DummyArgs:
-        def __init__(self):
-            self.embedding_size = 32
-            self.input_dim = 64
-            self.cuda = torch.cuda.is_available()
-
-    args_ae = DummyArgs()
-
-    device = torch.device("cuda" if args_ae.cuda else "cpu")
-
-    # Global AE model
-    global_ae = Network(args_ae).to(device)
-
-    # Federated training settings
-    federated_rounds = 50
-    local_epochs = 10
-
-    print("Training Federated Autoencoder...")
-
-    for rnd in range(federated_rounds):
-
-        print(f"\nFederated Round")
-
-        local_weights = []
-        local_sizes = []
-        round_total_loss = 0.0
-        total_data_in_round = 0
-
-        for client_id in range(n_clients):
-
-            # print(f" Client {client_id}")
-
-            client_data = train_data[client_id]
-
-            # print(" jumlah data:", len(client_data))
-
-            if len(client_data) == 0:
-                # print(f" Client {client_id} skipped (empty)")
-                continue
-
-            weights, client_loss = local_train_ae(
-                global_ae,
-                client_data,
-                device,
-                epochs=local_epochs
-            )
-
-            local_weights.append(weights)
-            local_sizes.append(len(client_data))
-
-            round_total_loss += client_loss * len(client_data)
-            total_data_in_round += len(client_data)
-
-        # FedAvg aggregation
-        global_weights = fedavg(local_weights, local_sizes)
-
-        global_ae.load_state_dict(global_weights)
-
-        if total_data_in_round > 0:
-            avg_round_loss = round_total_loss / total_data_in_round
-            print(f"Federated Round {rnd+1} Total Loss ; {avg_round_loss:.6f}")
-
-    # ==========================================
-    # FEATURE EXTRACTION
-    # ==========================================
-
-    global_ae.eval()
-
-    embedded_train_data = []
-
-    with torch.no_grad():
-
-        for client_data in train_data:
-
-            tensor_data = torch.FloatTensor(client_data).to(device)
-
-            z = global_ae.encode(
-                tensor_data
-            )
-
-            embedded_train_data.append(
-                z.cpu().numpy()
-            )
-
-    # Test embedding
-    with torch.no_grad():
-
-        tensor_test_data = torch.FloatTensor(test_data).to(device)
-
-        embedded_test_data = global_ae.encode(
-            tensor_test_data
-        ).cpu().numpy()
-
-    # # ==========================================
-    # # FEATURE EXTRACTION & NORMALIZATION
-    # # ==========================================
-
-    # global_ae.eval()
-    # embedded_train_data = []
-
-    # with torch.no_grad():
-    #     for client_data in train_data:
-    #         tensor_data = torch.FloatTensor(client_data).to(device)
-    #         z = global_ae.encode(tensor_data.view(-1, 784))
-    #         embedded_train_data.append(z.cpu().numpy())
-
-    # # --- TAMBAHAN BARU: NORMALISASI RUANG LATEN ---
-    # from sklearn.preprocessing import MinMaxScaler
-    # scaler = MinMaxScaler()
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     
-    # # Gabungkan sementara untuk mencari nilai min-max global, lalu pisahkan lagi
-    # concatenated_train = np.concatenate(embedded_train_data, axis=0)
-    # scaler.fit(concatenated_train)
+    # Jalankan Autoencoder dan ambil fitur laten mentah (tanpa normalisasi)
+    embedded_train_data, embedded_test_data = run_federated_ae_and_extract(
+        train_data=train_data, 
+        test_data=test_data, 
+        device=device, 
+        n_clients=n_clients,
+        federated_rounds=60, 
+        local_epochs=10, 
+        input_dim=64, 
+        embedding_size=16
+    )
     
-    # # Terapkan normalisasi ke masing-masing klien
-    # normalized_train_data = [scaler.transform(client_z) for client_z in embedded_train_data]
-
-    # # Test embedding (Jangan lupa di-scale juga!)
-    # with torch.no_grad():
-    #     tensor_test_data = torch.FloatTensor(test_data).to(device)
-    #     embedded_test_data = global_ae.encode(tensor_test_data.view(-1, 784)).cpu().numpy()
-    #     embedded_test_data = scaler.transform(embedded_test_data)
-        
-    # # Add Laplacian noise ke data yang SUDAH dinormalisasi
-    # if epsilon == -1:  
-    #     noised_train_data = normalized_train_data
-    # else:
-    #     noised_train_data = [add_laplace_noise(z, epsilon, seed=i_trial) for z in normalized_train_data]
-        
     # Add Laplacian noise to a train_dataset
     if epsilon == -1:  # no noise setting
         noised_train_data = embedded_train_data
