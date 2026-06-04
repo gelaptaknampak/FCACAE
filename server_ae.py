@@ -98,7 +98,7 @@ def run_federated_ae_and_extract(train_data, test_data, device, n_clients, feder
             print(f"Federated Round {rnd+1} Total Loss ; {avg_round_loss:.6f}")
 
     # ==========================================
-    # FEATURE EXTRACTION (Murni Tanpa Normalisasi)
+    # FEATURE EXTRACTION
     # ==========================================
     global_ae.eval()
     embedded_train_data = []
